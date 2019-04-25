@@ -1,0 +1,23 @@
+/**
+*  @file lib/twi_tool.h
+*
+*
+*/
+
+#ifndef LIB_TWI_TOOL_H
+#define  LIB_TWI_TOOL_H
+
+#include "config.h"
+#include "timer2.h"
+#include "twi1.h"
+
+
+
+
+u8 twi_check(void);
+void twi_start(void);
+void twi_read_from(u8 bufp, u8 id, u8 pos, u8 len);
+void twi_write_to(u8 bufp, u8 id, u8 pos, u8 len);
+
+
+#endif

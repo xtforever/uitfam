@@ -1,0 +1,153 @@
+#include "lcd_2wire.h"
+
+const u8 LCD_OFFS[ LCD_H-1 ] PROGMEM = { 0x20,0x40,0x60 };
+
+inline static void lcd_clock(void)
+{
+  _delay_us(1);
+  SBI_PORT( LCD_CLK );
+  _delay_us(1);
+  CBI_PORT( LCD_CLK );
+}
+
+inline static void lcd_data(u8 d)
+{
+  if( d ) {
+    SBI_PORT( LCD_DATA );
+  }
+  else {
+    CBI_PORT( LCD_DATA );
+  }
+}
+
+// lösche schieberegister
+static void lcd_shiftreg_clr(void)
+{
+  u8 i;
+  // clr all bit
+  lcd_data(0);
+  for(i=0;i<6;i++)
+    {
+      lcd_clock();
+    }
+}
+
+
+// sende 6 bit an das schieberegister
+// BIT 5  4  3  2  1  0
+//     E RS d7 d6 d5 d4
+static void lcd_shiftreg_write( u8 d )
+{
+  u8 i;
+  for(i=0;i<6;i++)
+    {
+      lcd_data( d & 0x20 );
+      lcd_clock();
+      d <<= 1;
+    }
+}
+
+// 5 bit an LCD senden mit E-Toggle
+//
+
+
+// Zuerst werden 6 bit in das schiebregister gepackt
+// das 6. bit muss 1 sein
+// Danach wird die Data-Leitung auf 1 gesetzt
+// durch die Diode erscheint an der E Leitung eine 1
+// danach werden alle Leitungen des schieberegisters wieder
+// auf 0 gesetzt. 
+
+static void lcd_out(u8 d)
+{
+  d |= 0x20; // setze 6. bit == Enable
+  lcd_shiftreg_write( d ); // _delay_ms(50);
+
+  // enable DATA + Q6 == HIGH : E=1
+  lcd_data( 1 ); 
+  _delay_us(1); 
+
+  lcd_shiftreg_clr(); // rst DATA + E, prepare shiftreg for next command
+  
+  // _delay_ms(.1);
+  // xprintf(PSTR("$%X%c "), d & 0x0f, (d&0x10) ? 'r' : ' ' ); 
+}
+
+
+
+void lcd_command( u8 d )
+{
+  lcd_out( d >>4  );
+  lcd_out( d&0x0f );
+}
+
+
+// Write to LCD Display RAM (RS=1)
+void lcd_write_ram(u8 d)
+{
+  u8 val;
+  val = d >> 4;
+  val |= 0x10; // RS=1
+  lcd_out(val);
+
+  val = d & 0x0f;
+  val |= 0x10; // RS=1
+  lcd_out(val);
+}
+
+void lcd_init( void ) {
+  cfg_lo( LCD_CLK );
+  cfg_lo( LCD_DATA );
+  lcd_shiftreg_clr();
+
+    // warten auf die Bereitschaft des LCD
+    _delay_ms( LCD_BOOTUP_MS );
+ 
+    // Soft-Reset muss 3mal hintereinander gesendet werden zur Initialisierung
+    lcd_out( LCD_SOFT_RESET );
+    _delay_ms( LCD_SOFT_RESET_MS1 );
+ 
+    lcd_out( LCD_SOFT_RESET );
+    _delay_ms( LCD_SOFT_RESET_MS2 );
+ 
+    lcd_out( LCD_SOFT_RESET );
+    _delay_ms( LCD_SOFT_RESET_MS3 );
+ 
+    // 4-bit Modus aktivieren 
+    lcd_out( (LCD_SET_FUNCTION | LCD_FUNCTION_4BIT)>>4 );
+    _delay_ms( LCD_SET_4BITMODE_MS );
+ 
+    // 4-bit Modus / 2 Zeilen / 5x7
+    lcd_command( LCD_SET_FUNCTION |
+                 LCD_FUNCTION_4BIT |
+                 LCD_FUNCTION_2LINE |
+                 LCD_FUNCTION_5X7 );
+ 
+    // Display ein / Cursor aus / Blinken aus
+    lcd_command(LCD_SET_DISPLAY |
+                LCD_DISPLAY_ON |
+                LCD_CURSOR_OFF |
+                LCD_BLINKING_OFF ); 
+ 
+    // Cursor inkrement / kein Scrollen
+    lcd_command( LCD_SET_ENTRY |
+                 LCD_ENTRY_INCREASE |
+                 LCD_ENTRY_NOSHIFT );
+
+    lcd_command( LCD_CLEAR_DISPLAY );
+    _delay_ms( LCD_CLEAR_DISPLAY_MS );
+
+    // ----------------------------------
+    // SET 4 - LINES MODE ??? EA-DIP 20x4
+    // ----------------------------------
+    lcd_command( 0x24 ); _delay_ms(1);     
+    lcd_command( 0x09 ); _delay_ms(1);     
+    lcd_command( 0x20 ); _delay_ms(1);     
+    lcd_command( 0x01 ); _delay_ms(5);     
+    // ----------------------------------
+    // ----------------------------------
+    // 
+    lcd_command( LCD_SET_DDADR  ); 
+    lcd_write_ram('G'); lcd_write_ram('O'); 
+}
+

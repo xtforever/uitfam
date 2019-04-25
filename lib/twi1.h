@@ -1,0 +1,104 @@
+#ifndef TWI1_H
+#define TWI1_H
+
+#include <util/twi.h>
+#include "cpu.h"
+
+#include "config.h"
+
+extern u16 tw_reset_cnt;
+
+#ifndef TWI1_BITRATE
+#define TWI1_BITRATE 10000UL
+#endif
+
+struct TWI_ST {
+  volatile u8 ptr,
+    rw_max,
+    rw_start,
+    rx_start,
+    retry,
+    stat;
+    u8 read_sw;
+    u16 tm;
+};
+
+extern struct TWI_ST TWI;
+
+enum TWI_STATES {
+  TW_ERROR   = 64,
+  TW_BUSY    = 128,
+  TW_RX      = 1,
+  TW_TX      = 2,
+  TW_MT_TXC  = 4,
+  TW_MT_RXC  = 16,
+  TW_TMR_ON  = 8
+};
+
+
+volatile u8 last_twi_state;
+
+void tw_init( u8 addr );
+u8 tw_start( u8 start, u8 n );
+u8 tw_read_at(u8 id, u8 p, u8 n);
+void tw_reset(void);
+
+#ifdef TWI_LOG
+  extern volatile u8 twi_state[40];
+  extern volatile u8 twi_state_p;
+  u8 get_twi_state(void);
+#endif
+
+
+
+void twi_init(u8 id, u8 pullup_enable);
+u8 twi_check(void);
+void twi_start(void);
+void twi_read_from(u8 bufp, u8 id, u8 pos, u8 len);
+void twi_write_to(u8 bufp, u8 id, u8 pos, u8 len);
+
+typedef enum { TWI_READY, TWI_BUSY } twhdl_t;
+typedef twhdl_t (*twifunc_t) (twhdl_t en);
+
+#ifndef MAX_TWI_FUNC
+#define MAX_TWI_FUNC 0
+#endif
+
+struct TWHDL_st {
+    twifunc_t fn[MAX_TWI_FUNC];
+    twhdl_t bus;
+    u8 n;
+} TWHDL;
+
+void twhdl_init(void);
+void twhdl_register(u8 n, twifunc_t fn);
+void twhdl_exec( void );
+
+
+
+#if defined( __AVR_ATmega328P__ )		\
+|| defined(__AVR_ATmega328__)			\
+|| defined(__AVR_ATmega88__)			\
+|| defined(__AVR_ATmega88P__)			\
+|| defined(__AVR_ATmega168P__)			\
+|| defined(__AVR_ATmega168__)
+
+#define TWI_SCL C5
+#define TWI_SDA C4
+
+#elif defined( __AVR_ATmega644A__)		\
+    || defined( __AVR_ATmega644PA__)
+
+#define TWI_SCL C0
+#define TWI_SDA C1
+
+
+#else
+
+#error TWI_SCL, TWI_SDA not defined for your chip architectur.
+#error please define in lib/twi_tool.h
+
+#endif
+
+
+#endif

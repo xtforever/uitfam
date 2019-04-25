@@ -1,0 +1,127 @@
+#include <string.h>
+#include "lcd_hal.h"
+
+
+struct LCD_CTRL_st LCD_CTRL;
+
+
+
+void lcd_gotoxy( u8 x, u8 y )
+{
+  if( x < LCD_W && y < LCD_H ) 
+    LCD_CTRL.crsr = x+y*LCD_W;
+}
+
+void lcd_update(void)
+{
+  u8 x,y, n;
+
+  // running display update?
+  n=LCD_CTRL.upd;
+  if( n ) goto update_display;
+
+  // start display update ? 
+  if( ! LCD_CTRL.dirty ) return;
+
+  // init display update
+  LCD_CTRL.upd=1; n=1;
+  LCD_CTRL.dirty=0;
+
+ update_display:
+  n--;
+  y = n / LCD_W; 
+  x = n - ( y * LCD_W );
+  if( y >= LCD_H ) { LCD_CTRL.upd = 0; return; }
+
+  if( x == 0 ) {
+    if( y ) y = pgm_read_byte( LCD_OFFS+y-1 );
+    lcd_command( LCD_SET_DDADR + y ); 
+  }
+  
+  lcd_write_ram( LCD_CTRL.scr[n] ); 
+  LCD_CTRL.upd++;
+}
+
+
+// program memory puts
+void lcd_pputs( const char *s )
+{
+  for(;;) {
+    u8 ch = pgm_read_byte ( s ); s++;
+    if( ch == 0 ) return;
+
+    lcd_putc( ch );
+  }
+}
+
+void lcd_puts( const char *s )
+{
+  while( *s ) lcd_putc(*s++);
+}
+
+
+void lcd_newline(void)
+{
+  u8 x,y,n = LCD_CTRL.crsr;
+  y = n / LCD_W;
+  x = n - (y*LCD_W);
+  x=0; y++;
+  if( y >= LCD_H ) y=0;
+  LCD_CTRL.crsr = x+y*LCD_W;
+}
+
+void lcd_clr_eol(void)
+{
+  u8 x,y,n = LCD_CTRL.crsr;
+  y = n / LCD_W;
+  x = n - (y*LCD_W);
+  while( x < LCD_W ) { lcd_putc(32); x++; } 
+}
+
+
+void lcd_crsr_inc(void)
+{
+  u8 n = LCD_CTRL.crsr;
+  n++;
+  if( n >= LCD_W * LCD_H ) n = 0;
+  LCD_CTRL.crsr = n;
+}
+
+static void lcd_clear(void)
+{
+  memset( LCD_CTRL.scr, 32, sizeof LCD_CTRL.scr );
+  LCD_CTRL.crsr = 0;
+  LCD_CTRL.dirty=1;
+}
+
+void lcd_putc(u8 ch)
+{
+  u8 n;
+  if( ch == 10 ) { lcd_newline(); return; }
+  if( ch == '\f' ) { lcd_clear(); return; }
+
+  n = LCD_CTRL.crsr;
+  if( n >= LCD_W * LCD_H ) n = 0;
+
+  LCD_CTRL.scr[n] = ch;
+
+  lcd_crsr_inc();
+  LCD_CTRL.dirty = 1;
+}
+
+void lcd_hal_init(void)
+{
+  lcd_init();
+  lcd_clear();
+  LCD_CTRL.dirty = 0;
+}
+
+void lcd_write_int(long n, u8 w)
+{
+    u16 xo = xfunc_out;
+    xfunc_out=lcd_putc;
+    xitoa(n,-10,w);
+    xfunc_out=xo;
+}
+
+    

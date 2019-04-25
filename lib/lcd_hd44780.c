@@ -1,0 +1,44 @@
+#include "lcd_hd44780.h"
+
+void lcd_hd44780_init( void ) {
+  // warten auf die Bereitschaft des LCD
+ _delay_ms( LCD_BOOTUP_MS );
+ 
+ // Soft-Reset muss 3mal hintereinander gesendet werden zur Initialisierung
+ lcd_out( LCD_SOFT_RESET );
+ _delay_ms( LCD_SOFT_RESET_MS1 );
+ 
+ lcd_out( LCD_SOFT_RESET );
+ _delay_ms( LCD_SOFT_RESET_MS2 );
+ 
+ lcd_out( LCD_SOFT_RESET );
+ _delay_ms( LCD_SOFT_RESET_MS3 );
+ 
+ // 4-bit Modus aktivieren 
+ lcd_out( (LCD_SET_FUNCTION | LCD_FUNCTION_4BIT)>>4 );
+ _delay_ms( LCD_SET_4BITMODE_MS );
+ 
+ // 4-bit Modus / 2 Zeilen / 5x7
+ lcd_command( LCD_SET_FUNCTION |
+	      LCD_FUNCTION_4BIT |
+              LCD_FUNCTION_2LINE |
+	      LCD_FUNCTION_5X7 );
+  _delay_ms(1);
+
+ // Display ein / Cursor aus / Blinken aus
+ lcd_command(LCD_SET_DISPLAY |
+	     LCD_DISPLAY_ON |
+	     LCD_CURSOR_OFF |
+	     LCD_BLINKING_OFF ); 
+ _delay_ms(1);
+ 
+ // Cursor inkrement / kein Scrollen
+ lcd_command( LCD_SET_ENTRY |
+	      LCD_ENTRY_INCREASE |
+	      LCD_ENTRY_NOSHIFT );
+ _delay_ms(1);
+ 
+ lcd_command( LCD_CLEAR_DISPLAY );
+ _delay_ms( LCD_CLEAR_DISPLAY_MS );
+}
+
