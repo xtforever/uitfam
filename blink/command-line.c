@@ -1,8 +1,4 @@
-#include "command-line.h"
 #include "config.h"
-
-
-
 
 /* ---------------------------------------------------------
    define a simple command to demonstrate command-line 

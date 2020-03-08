@@ -1,16 +1,4 @@
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <avr/eeprom.h>
-#include <stdlib.h>
-
-#include "cpu.h"
-#include "xitoa.h"
-#include "serx.h"
-#include "timer2.h"
-#include "cmdln.h"
-#include "adc.h"
-#include "tcb.h"
-
+#include "config.h"
 #include "command-line.h"
 
 

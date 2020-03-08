@@ -6,12 +6,6 @@
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
 #include "cpu.h"
-#include "xitoa.h"
-#include "serx.h"
-#include "cmdln.h"
-#include "timer2.h"
-#include "cmdln.h"
-#include "adc.h"
 
 
 #define WDT_RESET() wdt_reset()
@@ -68,5 +62,11 @@ extern volatile u8 TWMEM[twi_ptr_max];
 
 
 #include "tcb.h"
+#include "xitoa.h"
+#include "serx.h"
+#include "cmdln.h"
+#include "timer2.h"
+#include "cmdln.h"
+#include "adc.h"
 
 #endif
