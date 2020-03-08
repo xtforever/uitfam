@@ -1,10 +1,8 @@
 #include "util.h"
 
 #include "timer2.h"
-#include "twi1.h"
 #include "xitoa.h"
 #include "schedule.h"
-#include "lcd_hal.h"
 #include "cmdln.h"
 
 #ifndef LOG_ENABLE
@@ -48,7 +46,7 @@ u8 parse16(char **s, u16 *d)
 
 u8 getnum(u8 p)
 {
-  u8 num; char *s = LN.buf+p; 
+  char *s = LN.buf+p; 
   parse8(&s,&p); return p;
 }
 
@@ -61,6 +59,10 @@ void xdump(u8 *p, u8 len)
         xputc(32);
     }
 }
+
+
+#ifdef TWI_ID
+#include "twi1.h"
 
 /** twi reset */
 void twi_reset(void)
@@ -139,7 +141,12 @@ u8 twi_enable(u8 mem, u8 len)
     twi_start();
     return wait_twi_ready();
 }
+#endif
 
+
+
+#ifdef LCD_H
+#include "lcd_hal.h"
 
 /** update lcd display using scheduler 
  *
@@ -163,3 +170,4 @@ void lcd_hal_update(void)
     }
     LCD_CTRL.dirty=0;
 }
+#endif

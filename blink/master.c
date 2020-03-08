@@ -11,28 +11,12 @@
 #include "adc.h"
 #include "tcb.h"
 
+#include "command-line.h"
+
 
 void blink_cb(void)
 {
     XBI_PORT(PIN_LED);
-}
-
-
-
-/* ---------------------------------------------------------
-   create comm interface, prefix is "log":
-   PORT  : USART-0
-   IO-BUF: 2^7 = 128
-   functions: log_in_is_empty, log_in_get, log_put;
-*/
-GEN_SERX(log, 0, 128)
-static void ser_init(void)
-{
-    log_init(REG_UBRR0);
-    UCSR0A = REG_UCSR0A;
-    xfunc_out = log_put;   // stdout for xputs,xprintf
-    cmd_buf_empty = log_in_is_empty;   // cmdln interface
-    cmd_buf_get = log_in_get;
 }
 
 void run(void)
@@ -46,32 +30,27 @@ void run(void)
 }
 
 
-HELP_MSG(ID, "ID - write firmware name and version" );
-void cmd_ID(void)
-{
-    writeln("ID blinki 12 1");
-}
-  
-const cmd_t cl[] PROGMEM = {
-    CMD(help),
-    CMD(ID)
-};
-const u8 max_cmd = ALEN(cl);
-
 int main(void)
 {
+    /* init hardware */
     cfg_lo(PIN_LED);
-    ser_init();
+    
+    /* init driver */
     timer2_init();
-    adc_init();
     cl_init();
-    // cfg_in_pullup( C4 );
-    // cfg_in_pullup( C5 );
-    // tw_init( TWI_ID );
 
-    tcb_add( BLINK_CB, blink_cb, 200 ); 
+    /* init command-line interface - command-line.c */
+    command_line_init();
+    
+    /* add timer callback for blinki */
+    tcb_add( BLINK_CB, blink_cb, 600 ); 
+
+    /* activate driver/irq */
     sei();
+
+    /* give startup output and debug messages */
     writeln("# " PROG_NAME );
     LOG("DEBUG LOG ENABLED");
     run(); /* never returns */
 }
+

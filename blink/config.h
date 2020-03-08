@@ -3,8 +3,16 @@
 
 #include <avr/io.h>
 #include <avr/wdt.h>
+#include <avr/interrupt.h>
+#include <avr/eeprom.h>
 #include "cpu.h"
 #include "xitoa.h"
+#include "serx.h"
+#include "cmdln.h"
+#include "timer2.h"
+#include "cmdln.h"
+#include "adc.h"
+
 
 #define WDT_RESET() wdt_reset()
 #define WDT_ENABLE() wdt_enable(WDTO_500MS)
@@ -56,4 +64,9 @@ extern volatile u8 TWMEM[twi_ptr_max];
 // #define PWM1_PRESCALE    1
 // #define PWM1_CHANNEL     (ENABLE_OC1A | DISABLE_OC1B)
 // #define PWM1_MODE        PWM1_FASTPWM_TOP_ICR
+
+
+
+#include "tcb.h"
+
 #endif
