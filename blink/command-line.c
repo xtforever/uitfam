@@ -24,16 +24,18 @@ void cmd_ID(void)
 
 /* ---------------------------------------------------------
    change speed of blinking led 
-   the speed gives the number of on/off cycles per second
+   the speed gives the number of on/off cycles per minute
    the time between status change is calculated via:
-      delay = 500ms / SPEED
+      delay = 30000ms / SPEED
+   SPEED is a global (u16) Variable
+   if SPEED is set to zero, the led will be switched off
  
    command: SPEED
-   param:   number 1-10 
-   output:  current speed 1-10
+   param:   number 0-200 
+   output:  current speed 0-200
    time:    0
    depends: tcb
-   GLOBAL:  SPEED
+   globals: SPEED
 */
 u8 SPEED=1;
 
