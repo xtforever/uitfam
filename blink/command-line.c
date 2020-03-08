@@ -39,18 +39,18 @@ u8 SPEED=1;
 
 void blinki_update_delay(void)
 {
-    u16 d = 500 / SPEED;
+    u16 d = 30000;
+    SBI_PORT(PIN_LED);
+    if( SPEED==0) d=0; else d /= SPEED;
     tcb_delay( BLINK_CB, d );
 }
 
-
-HELP_MSG(SPEED, "SPEED <1-10> --  set blinks per second" );
+HELP_MSG(SPEED, "SPEED <0-200> --  set blinks per minute" );
 void cmd_SPEED(void)
-{
-    
+{    
     u8 s,p=6;
     if( LN.buf[p-1] != 32 ) goto output_speed;
-    if( cl_num8(&p,&s) || s<1 || s>10 ) {
+    if( cl_num8(&p,&s) || s>200 ) {
 	writeln("ERR SPEED parse arg: %s", LN.buf);
 	return;
     }
