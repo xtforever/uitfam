@@ -22,6 +22,45 @@ void cmd_ID(void)
 }
 
 
+/* ---------------------------------------------------------
+   change speed of blinking led 
+   the speed gives the number of on/off cycles per second
+   the time between status change is calculated via:
+      delay = 500ms / SPEED
+ 
+   command: SPEED
+   param:   number 1-10 
+   output:  current speed 1-10
+   time:    0
+   depends: tcb
+   GLOBAL:  SPEED
+*/
+u8 SPEED=1;
+
+void blinki_update_delay(void)
+{
+    u16 d = 500 / SPEED;
+    tcb_delay( BLINK_CB, d );
+}
+
+
+HELP_MSG(SPEED, "SPEED <1-10> --  set blinks per second" );
+void cmd_SPEED(void)
+{
+    
+    u8 s,p=6;
+    if( LN.buf[p-1] != 32 ) goto output_speed;
+    if( cl_num8(&p,&s) || s<1 || s>10 ) {
+	writeln("ERR SPEED parse arg: %s", LN.buf);
+	return;
+    }
+    SPEED=s;
+    blinki_update_delay();
+ output_speed:
+    writeln("SPEED %d", SPEED);
+}
+
+
 
 /* ---------------------------------------------------------
    initialize command-line array with defined commands 
@@ -29,6 +68,7 @@ void cmd_ID(void)
 const cmd_t cl[] PROGMEM =
     {
      CMD(help), /* defined in cmdln.c */
+     CMD(SPEED),
      CMD(ID)
     };
 const u8 max_cmd = ALEN(cl);

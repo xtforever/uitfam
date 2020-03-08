@@ -32,7 +32,9 @@ int main(void)
     
     /* add timer callback for blinki */
     tcb_add( BLINK_CB, blink_cb, 600 ); 
-
+    /* set default value for blink speed */
+    blinki_update_delay();
+    
     /* activate driver/irq */
     sei();
 
