@@ -13,13 +13,13 @@ void tcb_add(u8 num, void(*func)(void), u16 ms )
 
 void tcb_del(u8 num)
 {
-    TCB[num].func = 0;
+    TCB[num].ms = 0;
 }
 
 void tcb_check(void)
 {
     for(u8 i=0; i<MAX_CALLBACK; i++ ) {
-        if( TCB[i].func && 
+        if( TCB[i].func && TCB[i].ms && 
             timer2_elapsed_time(TCB[i].tm) > TCB[i].ms )
             {
                 TCB[i].func();
