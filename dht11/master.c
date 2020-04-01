@@ -51,7 +51,7 @@ int main(void)
     /* give startup output and debug messages */
     writeln("# " PROG_NAME );
     LOG("DEBUG LOG ENABLED");
-    LOG("type HELP for command line help");
+    LOG("type 'help' for command line help");
     run(); /* never returns */
 }
 
