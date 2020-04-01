@@ -2,15 +2,43 @@
 #include "command-line.h"
 #include "dht11.h"
 #include "dig7x4.h"
+#include "util/delay.h"
 
+
+/*
+ * Diese Funktion wird durch tcb_check aufgerufen (main_loop)
+ * dazu wurde sie mit tcb_add() einer callback liste, die in
+ * config.h definiert wird, hinzugefuegt
+ * Zuerst wird die LED umgeschaltet
+ * danach wird pin DHT11 auf low gelegt und mit tcb_delay
+ * die zeit fuer den n√chsten Aufruf auf 20ms gesetzt.
+ * nach 20ms wird der dht11 ausgelesen,
+ * der status wird auf dem UART ausgegeben
+ * das intervall bis zum n√chsten durchlauf wird zur√ckgesetzt.
+ **/
+
+   
 void blink_cb(void)
 {
-    XBI_PORT(PIN_LED);
-    u8 e,f,t;
-    e=dht11(&f,&t);
-    writeln("%d %d %d", e,f,t);
-    dig7_num(f*100+t);
-    dig7_dot(1,1);
+	static u8 start_code = 1;
+
+    	XBI_PORT(PIN_LED);
+
+    	if( start_code ) {	
+		start_code = 0;
+		SBI_DDR(DHT11); 
+		tcb_delay( BLINK_CB, 20 );
+		return;
+	}
+
+	u8 e,f,t;
+	start_code = 0;
+	e=dht11(&f,&t);
+    	blinki_update_delay();
+    	writeln("%d %d %d", e,f,t);
+    	if(e) return;
+       	dig7_num(f*100+t);
+    	dig7_dot(1,1);
 }
 
 
@@ -21,7 +49,8 @@ void run(void)
         WDT_RESET();
 	tcb_check();
 	cl_parse();
-   }    
+	dig7_update_cb();
+    }    
 }
 
 
@@ -43,7 +72,7 @@ int main(void)
     /* set default value for blink speed */
     blinki_update_delay();
 
-    tcb_add( DIG7_CB, dig7_update_cb, 5 ); 
+    // tcb_add( DIG7_CB, dhtfetch, 1000 ); 
     dig7_num(1234);
     /* activate driver/irq */
     sei();

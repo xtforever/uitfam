@@ -57,9 +57,9 @@ static int dht11_read(void)
 uint8_t dht11(u8 *feuchte, u8 *temperatur) 
 {
     u8 sum=0;
-    if (DHT11_is_low()) {return 1;} // Bus not free
-    DHT11_out_low();		// MCU start signal (>=18MS) 
-    _delay_ms(20);		/*  */
+    // if (DHT11_is_low()) {return 1;} // Bus not free
+    // DHT11_out_low();		// MCU start signal (>=18MS) 
+    // _delay_ms(20);		/*  */
     DHT11_in();
     _delay_us(15);
     WHILE_HI(2); // Wait for DHT's response (20-40us)
