@@ -3,10 +3,6 @@
 #include <avr/interrupt.h>
 
 
-
-
-
-
 // returns 0 if twi is ready
 u8 twi_check(void)
 {
