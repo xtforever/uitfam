@@ -6,17 +6,33 @@ volatile u16 ir_cmd;
 volatile u8  ir_rdy;
 #define inr(a,b,c) (a>=b && a<+c)
 
+enum key_syms {
+	       KEY_0,
+	       KEY_1,
+	       KEY_2,
+	       KEY_3,
+	       KEY_4,
+	       KEY_5,
+	       KEY_6,
+	       KEY_7,
+	       KEY_8,
+	       KEY_9,
+	       KEY_RIGHT,
+};
+
+
 static const PROGMEM u16 keys[] = {
-				   0,0x8440,
-				   1,0x5440,
-				   2,0x9440,
-				   3,0x1440,
-				   4,0xE440,
-				   5,0x6440,
-				   6,0xA440,
-				   7,0x2440,
-				   8,0xC440,
-				   9,0x4440,
+				   0x8440,
+				   0x5440,
+				   0x9440,
+				   0x1440,
+				   0xE440,
+				   0x6440,
+				   0xA440,
+				   0x2440,
+				   0xC440,
+				   0x4440,
+				   0x5EB6,
 				   0,0
 };
 
@@ -25,19 +41,18 @@ void blink_cb(void)
   XBI_PORT(PIN_LED);
 }
 
-u16 convert_raw_to_key( u16 raw )
+int8_t convert_raw_to_key( u16 raw )
 {
   u8 i=0;
   u16 code;
-  while( (code=KEYCODE( i+1)) ) {
+  while( (code=KEYCODE(i)) ) {
     if( code == raw ) {
-      u16 key =  KEYCODE(i);
-      LOG("%d", key );
-      return key;
+      LOG("%d", i );
+      return i;
     }
-    i+=2;
+    i++;
   }
-  return 0;
+  return -1;
 }
 
 static void emit_keycode(un32 dat)
@@ -59,7 +74,7 @@ void ir_check_irq(void)
   u8 lo;  
   u8 stat = GET_PIN(PIN_IRRECV0);
 
-  // wait for signal going low, measure hi,lo pule width */
+  // wait for signal going low, measure hi,lo pulse width */
   lo = TIMER2 - tm0;
   tm0 = TIMER2;
   if( stat ) {
@@ -96,8 +111,9 @@ void run(void)
 	cl_parse();
 
 	if( ir_rdy ) {
-	  convert_raw_to_key(ir_cmd);	  
-	  writeln("%04X", ir_cmd );
+	  int8_t key = convert_raw_to_key(ir_cmd);
+	  if( key <0 ) writeln("? %04X", ir_cmd );
+	  else writeln("%02X", key );
 	  ir_rdy=0;
 	}
 
