@@ -102,22 +102,28 @@ ISR(PCINT2_vect)
 }
 
 
+/* check if we got a message from the ir remote
+   and start defined procedure 
+*/
+static void ir_check(void)
+{
+  if(! ir_rdy ) return;
+  
+  int8_t key = convert_raw_to_key(ir_cmd);
+  if( key <0 ) writeln("? 0x%04X", ir_cmd );
+  else writeln("%02X", key );
+  ir_rdy=0;
+}
+
 void run(void)
 {
   WDT_ENABLE();    
-    while(1) {
-        WDT_RESET();
-	tcb_check();
-	cl_parse();
-
-	if( ir_rdy ) {
-	  int8_t key = convert_raw_to_key(ir_cmd);
-	  if( key <0 ) writeln("? %04X", ir_cmd );
-	  else writeln("%02X", key );
-	  ir_rdy=0;
-	}
-
-   }    
+  while(1) {
+    WDT_RESET();
+    tcb_check();
+    cl_parse();
+    ir_check();
+  }    
 }
 
 
@@ -127,22 +133,21 @@ int main(void)
     cfg_lo(PIN_LED);
 
     cfg_in_pullup(PIN_IRRECV0);
-    PCICR |= _BV(PCIE2); /* PORTD */
+    PCICR |= _BV(PCIE2); /* enable PCINT2 pin-change int 2 == PORTD */
     PCMSK2 |= _BV(2);    /* PIN2 */
     
     /* init driver */
     timer2_init();
     cl_init();
 
-    /* set resolution to 0.1ms */
+    /* set resolution to 0.1ms, default 1ms */
     OCR2A = (F_CPU / 256 / 10000);
 
-    
     /* init command-line interface - command-line.c */
     command_line_init();
     
     /* add timer callback for blinki */
-    tcb_add( BLINK_CB, blink_cb, 600 ); 
+    tcb_add( BLINK_CB, blink_cb, 0 ); 
     /* set default value for blink speed */
     blinki_update_delay();
     
