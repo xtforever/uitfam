@@ -1,18 +1,58 @@
 #include "config.h"
 #include "command-line.h"
 
+#define KEYCODE(i) pgm_read_word( keys+i )
+volatile u16 ir_cmd;
+volatile u8  ir_rdy;
+#define inr(a,b,c) (a>=b && a<+c)
+
+static const PROGMEM u16 keys[] = {
+				   0,0x8440,
+				   1,0x5440,
+				   2,0x9440,
+				   3,0x1440,
+				   4,0xE440,
+				   5,0x6440,
+				   6,0xA440,
+				   7,0x2440,
+				   8,0xC440,
+				   9,0x4440,
+				   0,0
+};
+
 void blink_cb(void)
 {
   XBI_PORT(PIN_LED);
 }
 
+u16 convert_raw_to_key( u16 raw )
+{
+  u8 i=0;
+  u16 code;
+  while( (code=KEYCODE( i+1)) ) {
+    if( code == raw ) {
+      u16 key =  KEYCODE(i);
+      LOG("%d", key );
+      return key;
+    }
+    i+=2;
+  }
+  return 0;
+}
 
-volatile u16 ir_cmd;
-volatile u8  ir_rdy;
+static void emit_keycode(un32 dat)
+{
+  if( ir_rdy ) return;
+  un16 cmd;
+  cmd.b[0] = dat.b[2];
+  cmd.b[1] = dat.b[0];
+  ir_cmd=cmd.v;
+  ir_rdy=1;
+}
 
-#define inr(a,b,c) (a>=b && a<+c)
 void ir_check_irq(void)
 {
+  static u8 bit_cnt;
   static un32 dat;
   static u16 tm0;
   static u8  hi;
@@ -27,80 +67,18 @@ void ir_check_irq(void)
     return;
   }
 
-  /* collect 32 data bits, set ir_rdy to one */ 
+  /* collect 32 data bits, reset on dirty pulse */ 
   if( inr(hi,3,8) ) {
     dat.v <<=1;
     /* bit 1 */ if( inr(lo,14,19) ) { dat.v |= 1; }
     /* error */ else if( ! inr(lo,3,8) ) { goto error; }   
-    if( ++count != 32 ) return; /* no errors until now */
-    if( ir_rdy ) return;
-    un16 cmd;
-    cmd.b[0] = dat.b[2];
-    cmd.b[1] = dat.b[0];
-    ir_rdy=1;
-    ir_cmd=cmd.v;
+    if( ++bit_cnt != 32 ) return; /* no errors until now */
+    emit_keycode(dat);
   }
 
  error:
-  count=0;
+  bit_cnt=0;
 }
-
-
-
-void ir_check(void)
-{
-  static u32 word;
-  u16 diff;
-  u8 d;
-  static u16 tm0;
-  static u8  hi;
-  u8 lo;
-  
-  to++;
-  u8 stat = GET_PIN(PIN_IRRECV0);
-  if( stat == irrecv0_stat ) return;
-  irrecv0_stat = stat;
-
-  diff = TIMER2 - tm0;
-  tm0 = TIMER2;
-  
-  // writeln("%c %u", stat ? '1' : '0', diff );
-
-  if( stat ) {
-    hi = diff;
-    return;
-  }
-  lo = diff;
-
-  write("%u %u ", hi, lo );
-
-  /* ---  start code 
-   */ 
-  if( inr(hi,70,110) ) {
-    count=0; word=0;
-    //    if( inr(lo,32,60) ) xputc('s');
-    //    else if( inr(lo,16,32) ) xputc('r');
-    //    else xputc('?');
-    return;
-  }
-
-  /* ---   data bit 
-   */ 
-  if( inr(hi,3,8) ) {
-    /* bit 1 */ if( inr(lo,14,19) ) { count++; word  <<=1; word |= 1; }
-    /* bit 0 */ else if( inr(lo,3,8) ) { count++; word <<=1; }
-    /* error */ else { count=0; return; }
-    if( count == 32 ) {
-      un32 n32;
-      n32.v = word;
-      writeln("\n---- %0X %0X", n32.b[0], n32.b[2] );
-    }
-  }
-
-  // xputc('+');
-
-}
-
 
 
 ISR(PCINT2_vect)
@@ -111,13 +89,18 @@ ISR(PCINT2_vect)
 
 void run(void)
 {
-  
-    WDT_ENABLE();    
+  WDT_ENABLE();    
     while(1) {
         WDT_RESET();
 	tcb_check();
 	cl_parse();
-        // ir_check();
+
+	if( ir_rdy ) {
+	  convert_raw_to_key(ir_cmd);	  
+	  writeln("%04X", ir_cmd );
+	  ir_rdy=0;
+	}
+
    }    
 }
 
