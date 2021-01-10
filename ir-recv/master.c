@@ -1,20 +1,10 @@
 #include "config.h"
 #include "command-line.h"
 
-
 void blink_cb(void)
 {
   XBI_PORT(PIN_LED);
 }
-
-
-
-volatile u8 irrecv0_stat;
-volatile u8 tm;
-volatile u16 to;
-volatile u8 header;
-volatile u16 bit;
-volatile u8 count;
 
 
 volatile u16 ir_cmd;
@@ -23,43 +13,32 @@ volatile u8  ir_rdy;
 #define inr(a,b,c) (a>=b && a<+c)
 void ir_check_irq(void)
 {
-  static u32 word;
+  static un32 dat;
   static u16 tm0;
   static u8  hi;
-  u8 lo;
-  
-
+  u8 lo;  
   u8 stat = GET_PIN(PIN_IRRECV0);
+
+  // wait for signal going low, measure hi,lo pule width */
   lo = TIMER2 - tm0;
   tm0 = TIMER2;
-
-  // wait for signal going low */
   if( stat ) {
-    hi = diff;
+    hi = lo;
     return;
   }
 
-
-  /* ---   data bit 
-   */ 
+  /* collect 32 data bits, set ir_rdy to one */ 
   if( inr(hi,3,8) ) {
-    word <<=1;
-    /* bit 1 */ if( inr(lo,14,19) ) { word |= 1; }
-    /* error */ else if( ! inr(lo,3,8) ) { goto error; }
-
-    if( ++count == 32 ) {
-      un32 n32;
-      n32.v = word;
-      un16 cmd;
-      cmd.b[0] = n32.b[2];
-      cmd.b[1] = n32.b[0];
-      if(! ir_rdy ) {
-	ir_rdy=1;
-	ir_cmd=cmd.v;
-      }
-      writeln("%02X%02X %04X", n32.b[0], n32.b[2], cmd.v );
-    }
-    return; 
+    dat.v <<=1;
+    /* bit 1 */ if( inr(lo,14,19) ) { dat.v |= 1; }
+    /* error */ else if( ! inr(lo,3,8) ) { goto error; }   
+    if( ++count != 32 ) return; /* no errors until now */
+    if( ir_rdy ) return;
+    un16 cmd;
+    cmd.b[0] = dat.b[2];
+    cmd.b[1] = dat.b[0];
+    ir_rdy=1;
+    ir_cmd=cmd.v;
   }
 
  error:
